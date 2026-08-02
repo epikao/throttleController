@@ -17,7 +17,6 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
-  flutter_libserialport: ^0.6.0   # Windows / Linux / macOS (Desktop only)
 
 flutter:
   uses-material-design: true

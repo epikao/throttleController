@@ -3,85 +3,9 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'bike_data.dart';
 import 'serial_base.dart';
-import 'package:flutter_libserialport/flutter_libserialport.dart';
 import 'package:usb_serial/usb_serial.dart';
 
-SerialService createSerialService() =>
-    Platform.isAndroid ? _AndroidSerialService() : _DesktopSerialService();
-
-// ── Desktop (Windows / Linux / macOS) — flutter_libserialport ─────────────
-class _DesktopSerialService implements SerialService {
-  SerialPort?       _port;
-  SerialPortReader? _reader;
-  StreamSubscription<Uint8List>? _sub;
-  String _buf = '';
-
-  final _data   = StreamController<BikeData>.broadcast();
-  final _status = StreamController<String>.broadcast();
-
-  @override Stream<BikeData> get dataStream   => _data.stream;
-  @override Stream<String>   get statusStream => _status.stream;
-  @override bool get isConnected => _port?.isOpen ?? false;
-
-  @override
-  Future<List<PortInfo>> listPorts() async =>
-      SerialPort.availablePorts.map((n) => PortInfo(n, n)).toList();
-
-  @override
-  Future<bool> connect(PortInfo port) async {
-    try {
-      _port = SerialPort(port.id);
-      final cfg = SerialPortConfig()
-        ..baudRate = 115200
-        ..bits     = 8
-        ..stopBits = 1
-        ..parity   = SerialPortParity.none;
-      if (!_port!.openReadWrite()) {
-        _status.add('Fehler: ${SerialPort.lastError}');
-        return false;
-      }
-      _port!.config = cfg;
-      _port!.write(Uint8List.fromList([0x3F])); // '?' → JSON mode
-      _reader = SerialPortReader(_port!);
-      _sub    = _reader!.stream.listen(_onData,
-          onError: (e) => _status.add('Fehler: $e'),
-          onDone:  ()  => _status.add('Getrennt'));
-      _status.add('Verbunden mit ${port.id}');
-      return true;
-    } catch (e) {
-      _status.add('Exception: $e');
-      return false;
-    }
-  }
-
-  void _onData(Uint8List raw) {
-    _buf += String.fromCharCodes(raw);
-    final idx = _buf.lastIndexOf('\n');
-    if (idx < 0) return;
-    final lines = _buf.substring(0, idx).split('\n');
-    _buf = _buf.substring(idx + 1);
-    for (final l in lines) {
-      final d = BikeData.tryParse(l.trim());
-      if (d != null) _data.add(d);
-    }
-  }
-
-  @override
-  Future<void> disconnect() async {
-    if (_port?.isOpen == true) {
-      _port!.write(Uint8List.fromList([0x21])); // '!' → ANSI
-      await Future.delayed(const Duration(milliseconds: 50));
-    }
-    await _sub?.cancel();
-    _reader?.close();
-    _port?.close();
-    _port = null;
-    _status.add('Getrennt');
-  }
-
-  @override
-  void dispose() { disconnect(); _data.close(); _status.close(); }
-}
+SerialService createSerialService() => _AndroidSerialService();
 
 // ── Android — usb_serial (USB OTG / CDC-ACM) ──────────────────────────────
 class _AndroidSerialService implements SerialService {
