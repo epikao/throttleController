@@ -1,0 +1,53 @@
+File - Preferences, Boards manager URLs:
+https://github.com/stm32duino/BoardManagerFiles/raw/main/package_stmicroelectronics_index.json
+
+https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
+
+Cache löschen:
+C:\Users\PierreK\AppData\Local\arduino\sketches\58CC753FA8AB1BF9AEF9B8C3477C8794\sketch
+
+Explorer Ansicht im Arduino:
+CTRL + SHIFT + E
+
+
+Check "Editor Quick Suggestions"
+
+Library info:
+DALLASTEMPLIBVERSION "4.0.5"
+
+name=DS18B20
+version=1.0.0
+author=Mathias Munk Hansen
+
+name=FRAM_I2C
+version=0.8.1
+author=Rob Tillaart <rob.tillaart@gmail.com>
+
+name=OneWire
+version=2.3.8
+author=Jim Studt, Tom Pollard, Robin James, Glenn Trewitt, Jason Dangel, Guillermo Lovato, Paul Stoffregen, Scott Roberts, Bertrik Sikken, Mark Tillotson, Ken Butcher, Roger Clark, Love Nystrom
+maintainer=Paul Stoffregen
+
+name=STM32duino RTC
+version=1.8.0
+author=STMicroelectronics
+maintainer=stm32duino
+
+
+for LVGL / LVGL demos:
+
+lv_conf.h hier ablegen:
+C:\Users\PierreK\Documents\Arduino\libraries 
+
+demos hier:
+C:\Technical\eController\Software\Arduino\eController\src\music
+
+in .ino Datei so:
+
+#include "src/keypad_encoder/lv_demo_keypad_encoder.h"
+#include "src/music/lv_demo_music.h"
+
+lv_demos.h im src ordner legen
+
+bei den assets in widget folgendes ändern:
+#include "../lvgl.h"

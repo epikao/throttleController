@@ -1,0 +1,206 @@
+//VCI=3.3V
+//************************指令*****************************
+void writecommand (unsigned char y) // (uchar y,uchar x)
+{
+  unsigned char i;
+  cs=0;
+  rs=0;
+  for(i=0;i<8;i++)
+    {
+     scl=0;
+      if (y&0x80)
+        {
+          sdi=1;
+          }
+          else
+         {
+          sdi=0;
+      }
+       scl=1;
+      y=y<<1;
+    }
+cs=1;
+}
+//************************************数据***************************
+void writedata(unsigned char w) // (uchar w, uchar v)
+{
+  unsigned char i;
+cs=0;
+rs=1;
+for(i=0;i<8;i++)
+ {
+  scl=0;
+     if (w&0x80)
+ {
+        sdi=1;
+    }
+         else
+       {
+         sdi=0;
+         } 
+        scl=1;
+      w=w<<1;
+    }
+cs=1;
+}
+//*********************************送显示数据
+void writedata1(unsigned char data3,data4)
+{
+  unsigned char a,i,b;
+   cs=0;
+   rs=1; 
+   a=data3;
+   for(i=0;i<8;i++)
+     {
+        scl=0;
+        if (a&0x80)
+        {
+         sdi=1;
+        }
+          else
+        {
+         sdi=0;
+      }
+        scl=1;
+       a=a<<1;
+     }
+   cs=1;
+   cs=0;  
+   b=data4;
+   for(i=0;i<8;i++)
+     {
+      scl=0;
+      if (b&0x80)
+    {
+        sdi=1;
+      }
+          else
+       {
+         sdi=0;
+           }
+        scl=1;
+   b=b<<1;
+     }
+ cs=1;
+}
+/*************************************************/
+void initi(void)
+{ 
+   res=1;
+   delay(1);
+   res=0;
+   delay(10);
+   res=1;
+   delay(120);
+//************************************************
+writecommand(0x11); 
+delay(120);      //Delay 120ms 
+
+writecommand(0x36);
+writedata(0x00);
+
+writecommand(0x3a);
+writedata(0x05);//
+//---------------ST7789V Frame rate setting----------//
+writecommand(0xb2);
+writedata(0x0C);//05
+writedata(0x0C);//05
+writedata(0x00);
+writedata(0x33);
+writedata(0x33);
+
+writecommand(0xb7);
+writedata(0x35);
+//----------ST7789V Power setting------------//
+writecommand(0xbb);
+writedata(0x20); //VCOM
+
+writecommand(0xc0);
+writedata(0x2c);
+
+writecommand(0xc2);
+writedata(0x01);
+
+writecommand(0xc3);
+writedata(0x08);
+
+writecommand(0xc4);
+writedata(0x20);
+
+writecommand(0xc6);
+writedata(0x0F);
+
+writecommand(0xd0);
+writedata(0xa4);
+writedata(0xa1);
+
+//--------------------GAMMA--------------------------------
+writecommand(0xE0);     
+writedata(0xD0);   
+writedata(0x05);   
+writedata(0x0A);   
+writedata(0x09);   
+writedata(0x08);   
+writedata(0x05);   
+writedata(0x2E);   
+writedata(0x44);   
+writedata(0x45);   
+writedata(0x0F);   
+writedata(0x17);   
+writedata(0x16);   
+writedata(0x2B);   
+writedata(0x33);   
+
+writecommand(0xE1);     
+writedata(0xD0);   
+writedata(0x05);   
+writedata(0x0A);   
+writedata(0x09);   
+writedata(0x08);   
+writedata(0x05);   
+writedata(0x2E);   
+writedata(0x43);   
+writedata(0x45);   
+writedata(0x0F);   
+writedata(0x16);   
+writedata(0x16);   
+writedata(0x2B);   
+writedata(0x33); 
+
+writecommand(0x21); 
+
+writecommand(0x2A); //Frame rate control
+writedata(0x00);
+writedata(0x00);
+writedata(0x00);
+writedata(0xEF);
+
+writecommand(0x2B); //Display function control
+writedata(0x00);
+writedata(0x00);
+writedata(0x01);
+writedata(0x3F);
+
+writecommand(0x29); //display on
+
+writecommand(0x2c); 
+
+  }
+
+//*********************************************************************************************
+void EnterSleep (void)
+{
+    writecommand(0x28);
+    delay(20);
+    writecommand(0x10);
+  
+  }
+
+//*********************************************************
+void ExitSleep (void)
+
+ {
+    writecommand(0x11);
+    delay(120);
+    writecommand(0x29);
+}

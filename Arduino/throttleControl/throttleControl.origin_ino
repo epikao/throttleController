@@ -1,0 +1,263 @@
+#include "src/button.h"
+#include "src/menu.h"
+#include "src/tft.h"
+#include "src/fram.h"
+#include "src/lights.h"
+#include "src/speed.h"
+#include "src/cadence.h"
+#include "src/torque.h"
+#include "src/throttle.h"
+#include "src/current.h"
+#include "src/battery.h"
+#include "src/voltage.h"
+#include "src/extern_pw.h"
+//#include "src/keypad_encoder/lv_demo_keypad_encoder.h"
+//#include "src/widgets/lv_demo_widgets.h"
+#include "src/ui/ui.h"
+#include "src/ui/actions.h"
+
+#include "src/globals.h"
+#include <Adafruit_NeoPixel.h>
+
+#include "hardware/gpio.h"
+#include "hardware/regs/sio.h"
+#include "hardware/structs/sio.h"
+#define TEST_GPIO_PIN 21 //Reset
+
+
+
+uint32_t lastMillis1 = 0;
+uint32_t lastMillis2 = 0;
+uint32_t lastMillis3 = 0;
+uint32_t lastMillis4 = 0;
+uint32_t lastMillis5 = 0;
+uint32_t lastMillis6 = 0;
+uint32_t lastMillis7 = 0;
+uint32_t lastMillis8 = 0;
+uint32_t lastMillis9 = 0;
+uint32_t lastMillis10 = 0;
+
+bool wsLed_state = false;
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, LED_BOARD, NEO_GRB + NEO_KHZ800);
+
+void lv_log_cb(const char * buf);
+void wsLed_toggle_handler();
+
+inline void fastToggle(uint pin) {
+    sio_hw->gpio_togl = 1u << pin;
+}
+
+void setup() {
+  // put your setup code here, to run once:
+  /* General setup */
+
+    /* Serial */
+  Serial.begin(115200); // USB virtual1
+  while (!Serial) { }  // Warte auf USB
+  Serial.println("Start");
+  analogReadResolution(12); //4095
+
+  /* LED Board */
+  //pinMode(LED_BOARD, OUTPUT);
+  //digitalWrite(LED_BOARD, HIGH);
+  // Initialisierung der WS2812B LED Board
+  strip.begin();
+  strip.setPixelColor(1, strip.Color(255, 0, 0));  
+  strip.show(); //
+  Serial.println("WS2812B_LED_setup");
+
+
+  Serial1.setTX(0);
+  Serial1.setRX(1);
+  Serial1.begin(9600); // 1 (RX) 0 (TX)
+  Serial.println("Serial1_setup");
+
+  Serial2.setTX(8);
+  Serial2.setRX(9);
+  Serial2.begin(115200); // 9 (RX) 8 (TX)
+  Serial.println("Serial2_setup");
+
+
+  /* Touch */
+  touch_button_setup();
+  Serial.println("touch_button_setup");
+
+
+  /* Lights */
+  void lights_setup();
+  Serial.println("Lights_setup");
+
+  /* FRAM */
+  Wire2.begin();
+  fram_test();
+
+  /* Throttle */
+  Wire.begin();
+  Wire.setClock(400000);
+  throttle_setup();
+
+  /* RTC */
+
+
+  /* Speed */
+  //speed_setup();
+  Serial.println("speed_setup");
+
+
+  /* Cadence */
+  cadence_setup();
+  Serial.println("cadence_setup");
+
+
+  /* Temperature sensor */
+  //Serial6.println(temp.getTempC());
+  //sensors.begin();
+  //sensors.setResolution(10);
+  //Serial2.println(sensors.getTempCByIndex(0));
+
+
+  /* Torque setup */
+  torque_setup();
+  Serial.println("torque_setup");
+
+
+  /* Battery voltage setup */
+  voltage_setup();
+  Serial.println("voltage_setup");
+
+
+  /* Battery current setup */
+  current_setup();
+  Serial.println("current_setup");
+
+
+  /* UI LVGL setup*/
+  ui_setup();
+  Serial.println("ui_setup");
+
+  //lv_demo_widgets();
+  //lv_log_register_print_cb(lv_log_cb); 
+  ui_init();
+
+
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+
+    //delay(500);
+    //digitalWrite(LED_BOARD, !digitalRead(LED_BOARD));
+    wsLed_toggle_handler();
+
+
+
+    //Serial6.write("start");
+    //Serial6.println(temp.getTempC());
+
+
+    menu_handler();
+    externPW_handler();
+    lights_handler();
+
+  #if 0
+    touch_button_handler();
+    speed_handler();
+    torque_handler();
+    current_handler();
+    voltage_handler();
+    cadence_handler();
+    throttle_handler();
+  #endif
+
+
+    /* I2C scanner */
+    //i2c_scanner_handler();
+    //delay(5000);
+
+    /* Testing */
+
+    if( (millis()-lastMillis1) > 100) //refresh every 30ms
+    {
+      lastMillis1 = millis();
+
+
+      lv_timer_handler();
+      //Serial.println("lv timer handler");
+
+      //button_test();
+      menu_test();
+     
+      externPW_test();
+      lights_test();
+
+      speed_test();
+      torque_test();
+      current_test();
+      voltage_test();
+      cadence_test();
+      throttle_test();
+
+      Serial.println("                                 ");
+      Serial.println("                                 ");
+      Serial.write("\33[?25l"); // for Terminal PC, Hide cursor 
+      Serial.write("\33[H"); // cursor to home
+
+    }
+
+
+}
+
+void wsLed_toggle_handler(){
+  uint32_t color;
+  
+  if (wsLed_state) {
+    // Zustand 1: Alle LEDs auf Rot setzen (RGB: 255, 0, 0)
+    color = strip.Color(50, 0, 0); 
+  } else {
+    // Zustand 2: Alle LEDs auf AUS setzen (RGB: 0, 0, 0 - schwarz)
+    color = strip.Color(0, 0, 0);
+  }
+  
+  // Setze die Farbe für ALLE LEDs auf einmal (schneller als die For-Schleife)
+  strip.fill(color, 0, NUM_LEDS); 
+  
+  // Überträgt die Farbdaten an den Streifen. 
+  strip.show(); 
+
+  // Zustand wechseln
+  wsLed_state = !wsLed_state; 
+}
+
+void lv_log_cb(const char * buf) {
+    // Stellen Sie sicher, dass Serial initialisiert und verfügbar ist
+    if (Serial) {
+        Serial.print(buf);
+    }
+}
+
+
+
+void setup1() {
+  delayMicroseconds(500);
+  //Serial.println("core1");
+
+  pinMode(TEST_GPIO_PIN, OUTPUT);
+  while (true) {
+
+    //digitalWrite(TEST_GPIO_PIN, !digitalRead(TEST_GPIO_PIN));
+    fastToggle(TEST_GPIO_PIN);  
+    delayMicroseconds(1);
+
+    #if 1
+    touch_button_handler();
+    speed_handler();
+    torque_handler();
+    current_handler();
+    voltage_handler();
+    cadence_handler();
+    throttle_handler();
+    #endif
+
+  }
+
+}

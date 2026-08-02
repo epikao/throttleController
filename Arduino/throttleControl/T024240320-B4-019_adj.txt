@@ -1,0 +1,169 @@
+/*****************************************************/
+void writecommand(unsigned char reg_index)
+{
+	unsigned char i;
+
+	pLCD_CS =0;
+	pLCD_RD=1;
+	pLCD_RS=0;
+
+	for(i=0; i<8; i++)
+	{
+	 	if(reg_index&0x80)
+			pLCD_SDA=1;
+		else
+			pLCD_SDA=0;
+
+		_nop_();
+		pLCD_SCL=0;
+		_nop_();
+		_nop_();
+		_nop_();
+		_nop_();     
+		pLCD_SCL=1;
+		_nop_();
+		_nop_();
+
+		reg_index <<=1;
+	}
+
+	pLCD_CS=1;   
+}
+/*****************************************************/
+void writedata(unsigned char reg_data)
+{
+	unsigned char i;
+
+	pLCD_CS=0;
+	pLCD_RD=1;
+	pLCD_RS=1;
+
+	for(i=0; i<8; i++)
+	{
+	 	if(reg_data&0x80)
+			pLCD_SDA=1;
+		else
+			pLCD_SDA=0;
+
+		_nop_();
+		pLCD_SCL=0;
+		_nop_();
+		_nop_();
+		_nop_();
+		_nop_();     
+		pLCD_SCL=1;
+		_nop_();
+		_nop_();
+
+		reg_data <<=1;
+	}
+
+	pLCD_CS=1;  
+
+}
+
+/********************************************/
+void Driver_Initial(void)
+{
+
+	pLCD_RST = 0;
+	delay(2000);
+	
+	pLCD_RST = 1;
+	delay(2000);
+
+
+	
+	writecommand(0x11);	// Exit Sleep 
+	delay(600); 
+
+	writecommand(0x36);	// Memory Access Control 
+	writedata(0x00);	
+
+	writecommand(0x3a);	
+	writedata(0x66);	    
+	
+	writecommand(0xb2);  
+	writedata(0x0c); 
+	writedata(0x0c); 
+	writedata(0X00); 
+	writedata(0X33); 
+	writedata(0X33);
+
+	
+	writecommand(0xb7);  //VGH VGL
+	writedata(0X35);    //
+	
+	writecommand(0xbb); //VCOM
+	writedata(0X20);	//28
+
+	writecommand(0xc0); 
+	writedata(0X2c);	
+		
+	writecommand(0xc2); //
+	writedata(0X01);
+	writedata(0Xff);	
+	
+	writecommand(0xc3); //VRH  
+	writedata(0X0b);
+	
+	writecommand(0xc4); //vdv
+	writedata(0X20);
+	
+   	writecommand(0xc6); //frame rate
+   	writedata(0X0f);
+
+	writecommand(0xd0); 
+	writedata(0Xa4);
+	writedata(0X51);
+
+
+	writecommand(0x2A); //Column address
+	writedata(0X00);      
+	writedata(0X00);   
+	writedata(0X00);   //0x00ef=239
+	writedata(0Xef);   
+	writecommand(0x2b); //row address 
+	writedata(0X00);      
+	writedata(0X00);   
+	writedata(0X01);   //0x013f=319
+	writedata(0X3f);   
+	
+	writecommand(0xE0);	// Set Gamma 
+	writedata(0xd0); 
+	writedata(0x00);
+	writedata(0x02);
+	writedata(0x07); 
+	writedata(0x0a); 
+	writedata(0x28);
+	writedata(0x32);
+	writedata(0x44); 
+	writedata(0x42); 
+	writedata(0x06); 
+	writedata(0x0e); 
+	writedata(0x12); 
+	writedata(0x14);
+	writedata(0x17);
+	 
+	writecommand(0XE1);	// Set Gamma 
+	writedata(0xd0); 
+	writedata(0x00);
+	writedata(0x02);
+	writedata(0x07); 
+	writedata(0x0a); 
+	writedata(0x28); 
+	writedata(0x31); 
+	writedata(0x54); 
+	writedata(0x47); 
+	writedata(0x0e); 
+	writedata(0x1c); 
+	writedata(0x17); 
+	writedata(0x1b); 
+	writedata(0x1e); 
+	
+	writecommand(0x20);	
+
+	delay(1000); 
+	writecommand(0x29);	// Display on 
+	delay(1000); 
+}

@@ -1,0 +1,3 @@
+cd app and:
+
+flutter run -d chrome
