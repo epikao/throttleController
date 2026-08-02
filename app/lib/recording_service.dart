@@ -2,8 +2,14 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'bike_data.dart';
 
+class _Frame {
+  final int tMs;         // Empfangszeit (epoch ms) — beim Eintreffen erfasst
+  final BikeData d;
+  const _Frame(this.tMs, this.d);
+}
+
 class RecordingService {
-  List<BikeData> _buffer = [];
+  final List<_Frame> _buffer = [];
   bool _recording = false;
 
   bool get isRecording => _recording;
@@ -16,25 +22,25 @@ class RecordingService {
 
   void addFrame(BikeData data) {
     if (_recording) {
-      _buffer.add(data);
+      _buffer.add(_Frame(DateTime.now().millisecondsSinceEpoch, data));
     }
   }
 
-  String stopRecording() {
+  void stopRecording() {
     _recording = false;
-    return _generateCsv();
   }
 
   String _generateCsv() {
     if (_buffer.isEmpty) return '';
 
+    final t0 = _buffer.first.tMs;
     final lines = <String>[];
-    lines.add('Time(ms),Speed(kmh),Cadence(rpm),Torque(raw),Power(W),Current(A),Voltage(V),Throttle(V),'
-        'RawNorm,FilteredTorque,Target,CadenceGate');
+    lines.add('t_ms,Speed_kmh,Cadence_rpm,Torque_raw,Power_W,Current_A,Voltage_V,'
+        'Throttle_V,RawNorm,FilteredTorque,Target,CadenceGate');
 
-    for (final d in _buffer) {
-      final time = DateTime.now().millisecondsSinceEpoch;
-      lines.add('$time,${d.speed.toStringAsFixed(1)},${d.cadence.toStringAsFixed(1)},'
+    for (final f in _buffer) {
+      final d = f.d;
+      lines.add('${f.tMs - t0},${d.speed.toStringAsFixed(1)},${d.cadence.toStringAsFixed(1)},'
           '${d.torque},${d.power},${d.current.toStringAsFixed(2)},${d.voltage.toStringAsFixed(2)},'
           '${d.throttle.toStringAsFixed(3)},${d.diagRawNorm.toStringAsFixed(3)},'
           '${d.diagFilteredTorque.toStringAsFixed(3)},${d.diagTarget.toStringAsFixed(3)},'
@@ -48,11 +54,18 @@ class RecordingService {
     if (_buffer.isEmpty) return null;
 
     final csv = _generateCsv();
-    final timestamp = DateTime.now().toString().replaceAll(':', '-').split('.')[0];
-    final filename = 'throttle_log_$timestamp.csv';
+    final now = DateTime.now();
+    final ts = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}'
+        '_${now.hour.toString().padLeft(2, '0')}-${now.minute.toString().padLeft(2, '0')}-${now.second.toString().padLeft(2, '0')}';
+    final filename = 'throttle_log_$ts.csv';
 
     try {
-      final dir = await getApplicationDocumentsDirectory();
+      // Android: app-spezifischer externer Speicher
+      // (/storage/emulated/0/Android/data/<pkg>/files) — ohne Extra-Permissions
+      // per USB-Dateimanager erreichbar. Sonst: Documents-Verzeichnis.
+      Directory? dir;
+      if (Platform.isAndroid) dir = await getExternalStorageDirectory();
+      dir ??= await getApplicationDocumentsDirectory();
       final file = File('${dir.path}/$filename');
       await file.writeAsString(csv);
       return file.path;

@@ -3,6 +3,7 @@ name: Build APK
 on:
   push:
     branches: [ main, develop ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -20,7 +21,10 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.44.8'
+          # Pinned: must stay in the Gradle 8 era. The old serial plugins
+          # (usb_serial, flutter_libserialport) call jcenter(), which was
+          # removed in Gradle 9 (Flutter >= ~3.3x templates).
+          flutter-version: '3.29.3'
           channel: 'stable'
 
       - name: Get dependencies
