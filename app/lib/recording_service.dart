@@ -34,7 +34,39 @@ class RecordingService {
     if (_buffer.isEmpty) return '';
 
     final t0 = _buffer.first.tMs;
+    final p = _buffer.first.d;  // Parameter-Snapshot vom Aufnahmestart
     final lines = <String>[];
+
+    // Parameter-Kopf: '#'-Zeilen werden von Analyse-Tools (pandas: comment='#')
+    // übersprungen; in Excel erscheinen sie als normale Zeilen vor den Daten.
+    lines.add('# Aufnahme: ${DateTime.fromMillisecondsSinceEpoch(t0)}');
+    lines.add('# Frames: ${_buffer.length}');
+    lines.add('# --- Parameter bei Aufnahmestart ---');
+    lines.add('# supportLevel=${p.support}, pasMode=${p.pasMode}, raceMode=${p.raceMode ? 1 : 0}');
+    lines.add('# torqueZero=${p.torqueZero}, torqueMax=${p.torqueMax}, '
+        'torqueDeadband=${p.torqueDeadband}, torqueIdleMs=${p.torqueIdleMs}');
+    lines.add('# torqueFilterRise=${p.torqueFilterRise.toStringAsFixed(3)}, '
+        'torqueFilterFall=${p.torqueFilterFall.toStringAsFixed(3)}');
+    lines.add('# pulsesPerRev=${p.pulsesPerRev}, cadenceTimeoutMs=${p.cadenceTimeoutMs}, '
+        'cadenceGatePulses=${p.cadenceGatePulses}, cadenceGateMs=${p.cadenceGateMs}');
+    lines.add('# cadenceMaxRpm=${p.cadenceMaxRpm.toStringAsFixed(1)}, '
+        'cadenceFilterAlpha=${p.cadenceFilterAlpha.toStringAsFixed(3)}, '
+        'cadenceMaxLimit=${p.cadenceMaxLimit.toStringAsFixed(1)}');
+    lines.add('# curveY25=${p.curveY25.toStringAsFixed(3)}, curveY50=${p.curveY50.toStringAsFixed(3)}, '
+        'curveY75=${p.curveY75.toStringAsFixed(3)}, curveOffset=${p.curveOffset.toStringAsFixed(3)}');
+    lines.add('# rampUpLow=${p.rampUpLow.toStringAsFixed(4)}, rampUpHigh=${p.rampUpHigh.toStringAsFixed(4)}, '
+        'rampThreshold=${p.rampThreshold.toStringAsFixed(3)}, rampDown=${p.rampDown.toStringAsFixed(4)}');
+    lines.add('# cruisePower=${p.cruisePower}, cruiseRampUp=${p.cruiseRampUp.toStringAsFixed(4)}, '
+        'cruiseRampDown=${p.cruiseRampDown.toStringAsFixed(4)}, cruiseDeadband=${p.cruiseDeadband.toStringAsFixed(2)}');
+    lines.add('# voltageMin=${p.voltageMin.toStringAsFixed(1)}, voltageMax=${p.voltageMax.toStringAsFixed(1)}, '
+        'currentMax=${p.currentMax.toStringAsFixed(1)}, capacityMax=${p.capacityMax.toStringAsFixed(1)}');
+    lines.add('# wheelCircle=${p.wheelCircle}');
+    lines.add('# speedLimitStreet=${p.speedLimitStreet.toStringAsFixed(1)}, '
+        'cruiseLimitStreet=${p.cruiseLimitStreet.toStringAsFixed(1)}, powerLimitStreet=${p.powerLimitStreet}');
+    lines.add('# speedLimitRace=${p.speedLimitRace.toStringAsFixed(1)}, '
+        'cruiseLimitRace=${p.cruiseLimitRace.toStringAsFixed(1)}, powerLimitRace=${p.powerLimitRace}');
+    lines.add('# ---');
+
     lines.add('t_ms,Speed_kmh,Cadence_rpm,Torque_raw,Power_W,Current_A,Voltage_V,'
         'Throttle_V,RawNorm,FilteredTorque,Target,CadenceGate');
 
