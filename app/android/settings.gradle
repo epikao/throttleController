@@ -1,8 +1,22 @@
 pluginManagement {
+    def flutterSdkPath = {
+        def properties = new Properties()
+        def localPropertiesFile = new File(rootProject.projectDir.parentFile.parentFile, "local.properties")
+        if (!localPropertiesFile.exists()) {
+            return null
+        }
+        localPropertiesFile.withInputStream { properties.load(it) }
+        return properties.getProperty("flutter.sdk")
+    }()
+
     repositories {
         google()
         mavenCentral()
         gradlePluginPortal()
+    }
+
+    if (flutterSdkPath != null) {
+        includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
     }
 }
 
@@ -11,3 +25,9 @@ plugins {
 }
 
 include ":app"
+
+def localPropertiesFile = new File(rootProject.projectDir.parentFile.parentFile, "local.properties")
+def properties = new Properties()
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withInputStream { properties.load(it) }
+}
