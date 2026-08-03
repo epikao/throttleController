@@ -81,16 +81,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _toggleRecording() async {
+    String? msg;
     if (widget.recording.isRecording) {
-      widget.recording.stopRecording();
-      final path = await widget.recording.saveToDisk();
-      if (mounted && path != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('CSV gespeichert: $path')),
-        );
-      }
+      final path = await widget.recording.stopRecording();
+      msg = (path != null) ? 'CSV gespeichert: $path'
+                           : 'Aufnahme leer - nichts gespeichert';
     } else {
-      widget.recording.startRecording();
+      if (!await widget.recording.startRecording()) {
+        msg = 'Aufnahme konnte nicht gestartet werden';
+      }
+    }
+    if (!mounted) return;
+    if (msg != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
     setState(() {});
   }
