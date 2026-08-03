@@ -115,8 +115,13 @@ static void print_page_main() {
     ROW(14, "Torque",   "%u",        s.torque);
     ROW(14, "Power",    "%u W",      s.power);
     ROW(14, "Current",  "%.1f A",    (double)s.current);
+    ROW(14, "IMotor",   "%.1f A",    (double)s.motorCurrent);   // Phasenstrom!
+    ROW(14, "Duty",     "%.0f %%",   (double)(s.dutyCycle * 100.0f));
+    ROW(14, "ERPM",     "%.0f",      (double)s.erpm);
     ROW(14, "Voltage",  "%.1f V",    (double)s.voltage);
     ROW(14, "Throttle", "%.2f V",    (double)s.throttleVolt);
+    ROW(14, "TempMotor","%.1f C",    (double)s.tempMotor);
+    ROW(14, "TempFet",  "%.1f C",    (double)s.tempFet);
     ROW(14, "Temp",     "%.1f C",    (double)s.temp);
     ROW(14, "Trip",     "%.1f km",   (double)p.tripKm);
     ROW(14, "Range",    "%u km",     s.range);
@@ -280,6 +285,10 @@ static void print_json() {
     // Diagnostic: rawNorm, filteredTorque, target, cadenceGateOpen
     Serial.printf("\"drn\":%.3f,\"dft\":%.3f,\"dgt\":%u,\"dtg\":%.3f,",
         (double)s.diagRawNorm, (double)s.diagFilteredTorque, s.diagCadenceGateOpen, (double)s.diagTarget);
+    // VESC: Phasenstrom, Duty, ERPM, Temperaturen
+    Serial.printf("\"imot\":%.2f,\"duty\":%.3f,\"erpm\":%.0f,\"tmot\":%.1f,\"tfet\":%.1f,",
+        (double)s.motorCurrent, (double)s.dutyCycle, (double)s.erpm,
+        (double)s.tempMotor, (double)s.tempFet);
     Serial.printf("\"tr\":%.1f,\"od\":%lu,\"ra\":%u,\"wh\":%.1f,",
         (double)p.tripKm, (unsigned long)p.odoKm, s.range, (double)s.whKm);
     Serial.printf("\"ca\":%u,\"sa\":%.1f,\"ot\":%lu,\"t\":%lu,",

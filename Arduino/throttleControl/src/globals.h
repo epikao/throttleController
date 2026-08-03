@@ -84,6 +84,14 @@ struct EBikeStatus {
   volatile float diagFilteredTorque = 0.0f;
   volatile float diagTarget = 0.0f;
   volatile uint8_t diagCadenceGateOpen = 0;
+  // VESC-Telemetrie, die bisher verworfen wurde. motorCurrent ist der PHASENSTROM
+  // (nicht der Batteriestrom!) - er bestimmt das Drehmoment und damit die Last am
+  // Getriebe. Bei kleiner Duty ist er ein Vielfaches von current.
+  volatile float motorCurrent = 0.0f;  // avg_motor_current [A]
+  volatile float dutyCycle = 0.0f;     // -1.0 .. 1.0
+  volatile float erpm = 0.0f;          // elektrische U/min
+  volatile float tempMotor = 0.0f;     // [°C], nur gueltig mit angeschlossenem Sensor
+  volatile float tempFet = 0.0f;       // [°C] Controller
 };
 
 // WICHTIG: Alle Felder, die von Core 1 (loop1/applyCurve/ISRs) gelesen und vom Menue
@@ -105,7 +113,15 @@ struct EBikeSettings {
   // ueber die Kadenz, weil der PAS (DM02) mit dem Antrieb mitdreht und weiterzaehlt,
   // auch wenn nicht getreten wird. Das Fenster ueberbrueckt die Totpunkte der
   // Pedalumdrehung. Kleiner = schnelleres Abschalten, aber irgendwann Ruckeln. 0-999.
-  volatile uint16_t torqueIdleMs = 400;
+  //
+  // ACHTUNG - das ist keine freie Wahl: Das Drehmoment hat ZWEI Spitzen pro Kurbel-
+  // umdrehung (ein Bein pro Halbdrehung). Der Abstand dazwischen ist
+  //   Totpunktabstand [ms] = 30000 / Trittfrequenz
+  // Ist torqueIdleMs kleiner, laeuft der Timer im Totpunkt ab und der Antrieb wird
+  // ueber den Cutoff in loop1 SCHLAGARTIG abgeschaltet - bei voller Leistung ein
+  // Schlag in den Antriebsstrang. 400 ms entsprachen 75 U/min, also mitten im
+  // normalen Trittbereich. 900 ms decken bis hinunter zu 33 U/min ab.
+  volatile uint16_t torqueIdleMs = 900;
 
   volatile uint8_t pulsesPerRev = 12;   // wird im cadenceInterrupt (Core 1) gelesen
   volatile uint32_t cadenceTimeoutMs = 500;  // Verfall des MESSWERTS -> Kadenz = 0.
@@ -131,11 +147,22 @@ struct EBikeSettings {
   //   RPM_min = 60000 / (cadenceGateMs * pulsesPerRev)   -> 1000ms/12 Magnete = 5 U/min
   volatile uint16_t cadenceGateMs = 1000;    // 100-3000
 
-  volatile float curveY25 = 0.20; //linear = 0.25
-  volatile float curveY50 = 0.30; //linear = 0.5
-  volatile float curveY75 = 0.50; //linear = 0.75
+  // Stuetzstellen der Unterstuetzungskennlinie (applyCurve, 4 lineare Abschnitte).
+  // Entscheidend ist nicht die Hoehe, sondern dass die STEIGUNGEN monoton bleiben:
+  //   0.15/0.35/0.65 -> 0.6 / 0.8 / 1.2 / 1.4  (progressiv, Verhaeltnis 2.3:1)
+  // Zum Vergleich 0.20/0.30/0.90 -> 0.8 / 0.4 / 2.4 / 0.4: der Abschnitt zwischen
+  // 50 % und 75 % Pedalkraft war SECHSMAL steiler als seine Nachbarn. Genau dort
+  // wandert das gefilterte Drehmoment bei jedem Tritt durch -> die Unterstuetzung
+  // schwankte um den Faktor drei (spuerbares Ruckeln, CSV-Analyse 08/2026).
+  // Ist es insgesamt zu kraeftig: supportLevel senken, nicht den Knick wieder einbauen -
+  // supportLevel multipliziert linear und laesst die Form der Kurve intakt.
+  volatile float curveY25 = 0.15; //linear = 0.25
+  volatile float curveY50 = 0.35; //linear = 0.5
+  volatile float curveY75 = 0.65; //linear = 0.75
+  // Gleiche Rampe ober- und unterhalb von rampThreshold: ein Sprung an der Schwelle
+  // erzeugt beim Wiederangasen einen spuerbaren Ruck.
   volatile float rampUpLow = 0.010;
-  volatile float rampUpHigh = 0.015;
+  volatile float rampUpHigh = 0.010;
   volatile float rampThreshold = 0.5;
   volatile float rampDown = 0.030;
   volatile float curveOffset = 0.0;

@@ -11,6 +11,8 @@ class BikeData {
   // Diagnostic
   final double diagRawNorm, diagFilteredTorque, diagTarget;
   final int    diagCadenceGateOpen;
+  // VESC: motorCurrent ist der PHASENSTROM (nicht Batteriestrom)
+  final double motorCurrent, dutyCycle, erpm, tempMotor, tempFet;
   // Torque parameters
   final int    torqueZero, torqueMax, torqueDeadband, torqueIdleMs;
   final double torqueFilterRise, torqueFilterFall;
@@ -43,6 +45,8 @@ class BikeData {
     this.menuState = 0, this.stopwatchCs = 0, this.stopwatchState = 0,
     this.diagRawNorm = 0, this.diagFilteredTorque = 0, this.diagTarget = 0,
     this.diagCadenceGateOpen = 0,
+    this.motorCurrent = 0, this.dutyCycle = 0, this.erpm = 0,
+    this.tempMotor = 0, this.tempFet = 0,
     this.torqueZero = 0, this.torqueMax = 0, this.torqueDeadband = 0,
     this.torqueIdleMs = 0,
     this.torqueFilterRise = 0, this.torqueFilterFall = 0,
@@ -78,6 +82,8 @@ class BikeData {
     stopwatchCs: _i(j['sw']), stopwatchState: _i(j['ss']),
     diagRawNorm: _d(j['drn']), diagFilteredTorque: _d(j['dft']),
     diagCadenceGateOpen: _i(j['dgt']), diagTarget: _d(j['dtg']),
+    motorCurrent: _d(j['imot']), dutyCycle: _d(j['duty']), erpm: _d(j['erpm']),
+    tempMotor: _d(j['tmot']), tempFet: _d(j['tfet']),
     torqueZero: _i(j['tz']), torqueMax: _i(j['tm']), torqueDeadband: _i(j['tdb']),
     torqueIdleMs: _i(j['tidl']),
     torqueFilterRise: _d(j['tfr']), torqueFilterFall: _d(j['tff']),

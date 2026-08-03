@@ -149,7 +149,8 @@ class RecordingService {
     l('---');
 
     b.writeln('t_ms,Speed_kmh,Cadence_rpm,Torque_raw,Power_W,Current_A,Voltage_V,'
-        'Throttle_V,RawNorm,FilteredTorque,Target,CadenceGate');
+        'Throttle_V,RawNorm,FilteredTorque,Target,CadenceGate,'
+        'IMotor_A,Duty,ERPM,TMotor_C,TFet_C');
     return b.toString();
   }
 
@@ -158,5 +159,8 @@ class RecordingService {
       '${d.torque},${d.power},${d.current.toStringAsFixed(2)},'
       '${d.voltage.toStringAsFixed(2)},${d.throttle.toStringAsFixed(3)},'
       '${d.diagRawNorm.toStringAsFixed(3)},${d.diagFilteredTorque.toStringAsFixed(3)},'
-      '${d.diagTarget.toStringAsFixed(3)},${d.diagCadenceGateOpen}';
+      '${d.diagTarget.toStringAsFixed(3)},${d.diagCadenceGateOpen},'
+      '${d.motorCurrent.toStringAsFixed(2)},${d.dutyCycle.toStringAsFixed(3)},'
+      '${d.erpm.toStringAsFixed(0)},${d.tempMotor.toStringAsFixed(1)},'
+      '${d.tempFet.toStringAsFixed(1)}';
 }

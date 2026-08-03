@@ -24,8 +24,13 @@
 // [23..26]  = rpm              int32 / 1.0
 // [27..28]  = v_in             int16 / 10.0  [V]  ← Batteriespannung
 // ---------------------------------------------------------------------------
-#define OFF_I_IN   9
-#define OFF_V_IN  27
+#define OFF_TEMP_FET    1
+#define OFF_TEMP_MOTOR  3
+#define OFF_I_MOTOR     5   // Phasenstrom -> Drehmoment -> Last am Getriebe
+#define OFF_I_IN        9
+#define OFF_DUTY       21
+#define OFF_RPM        23
+#define OFF_V_IN       27
 #define MIN_PAYLOAD_LEN 29  // mindestens bis v_in
 
 // ---------------------------------------------------------------------------
@@ -148,20 +153,31 @@ static void parseImu(const uint8_t *buf, uint8_t len) {
     }
 }
 
+static inline int32_t buf_i32(const uint8_t *b, uint8_t i) {
+    return ((int32_t)b[i] << 24) | ((int32_t)b[i+1] << 16) |
+           ((int32_t)b[i+2] <<  8) |  (int32_t)b[i+3];
+}
+
+static inline int16_t buf_i16(const uint8_t *b, uint8_t i) {
+    return (int16_t)(((uint16_t)b[i] << 8) | (uint16_t)b[i+1]);
+}
+
 static void parseValues(const uint8_t *buf, uint8_t len) {
     if (len < MIN_PAYLOAD_LEN) return;
     lastVescValuesMs = millis();
 
-    int32_t i_raw = ((int32_t)buf[OFF_I_IN  ] << 24) |
-                    ((int32_t)buf[OFF_I_IN+1] << 16) |
-                    ((int32_t)buf[OFF_I_IN+2] <<  8) |
-                    ((int32_t)buf[OFF_I_IN+3]);
-    float i = (float)i_raw / 100.0f;
+    float i = (float)buf_i32(buf, OFF_I_IN) / 100.0f;
     s.current = (i > 0.0f) ? i : 0.0f; // nur Entladestrom
 
-    int16_t v_raw = ((int16_t)buf[OFF_V_IN] << 8) |
-                     (uint8_t)buf[OFF_V_IN+1];
-    s.voltage = (float)v_raw / 10.0f;
+    s.voltage = (float)buf_i16(buf, OFF_V_IN) / 10.0f;
+
+    // Phasenstrom als Betrag: beim Bremsen/Rekuperieren ist er negativ, fuer die
+    // Getriebelast zaehlt aber der Betrag.
+    s.motorCurrent = fabsf((float)buf_i32(buf, OFF_I_MOTOR) / 100.0f);
+    s.dutyCycle    = (float)buf_i16(buf, OFF_DUTY) / 1000.0f;
+    s.erpm         = (float)buf_i32(buf, OFF_RPM);
+    s.tempFet      = (float)buf_i16(buf, OFF_TEMP_FET)   / 10.0f;
+    s.tempMotor    = (float)buf_i16(buf, OFF_TEMP_MOTOR) / 10.0f;
 }
 
 static void receiveBytes() {
