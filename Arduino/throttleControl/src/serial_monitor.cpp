@@ -282,9 +282,10 @@ static void print_json() {
         (double)s.speed, (double)s.cadenceRpm, s.torque, s.power);
     Serial.printf("\"cu\":%.1f,\"vo\":%.1f,\"th\":%.2f,\"tp\":%.1f,",
         (double)s.current, (double)s.voltage, (double)s.throttleVolt, (double)s.temp);
-    // Diagnostic: rawNorm, filteredTorque, target, cadenceGateOpen
-    Serial.printf("\"drn\":%.3f,\"dft\":%.3f,\"dgt\":%u,\"dtg\":%.3f,",
-        (double)s.diagRawNorm, (double)s.diagFilteredTorque, s.diagCadenceGateOpen, (double)s.diagTarget);
+    // Diagnostic: rawNorm, filteredTorque (Anzeige), gatedTorque (Regelung), target, cadenceGateOpen
+    Serial.printf("\"drn\":%.3f,\"dft\":%.3f,\"dgf\":%.3f,\"dgt\":%u,\"dtg\":%.3f,",
+        (double)s.diagRawNorm, (double)s.diagFilteredTorque, (double)s.diagGatedTorque,
+        s.diagCadenceGateOpen, (double)s.diagTarget);
     // VESC: Phasenstrom, Duty, ERPM, Temperaturen
     Serial.printf("\"imot\":%.2f,\"duty\":%.3f,\"erpm\":%.0f,\"tmot\":%.1f,\"tfet\":%.1f,",
         (double)s.motorCurrent, (double)s.dutyCycle, (double)s.erpm,

@@ -81,7 +81,10 @@ struct EBikeStatus {
   uint8_t  dbgImuLen = 0;   // letzter empfangener IMU-Payload (0 = noch kein Frame)
   // Diagnostic (Core 1 -> Anzeige/Serial, für Ruck-Analyse)
   volatile float diagRawNorm = 0.0f;
-  volatile float diagFilteredTorque = 0.0f;
+  volatile float diagFilteredTorque = 0.0f;  // Anzeige-Filter, laeuft auch bei zu-em Gate
+  volatile float diagGatedTorque = 0.0f;     // REGEL-Filter (pasMode 0), 0 bei zu-em Gate.
+                                             // Nur der erklaert target - diagFilteredTorque
+                                             // ist reine Sensoranzeige.
   volatile float diagTarget = 0.0f;
   volatile uint8_t diagCadenceGateOpen = 0;
   // VESC-Telemetrie, die bisher verworfen wurde. motorCurrent ist der PHASENSTROM

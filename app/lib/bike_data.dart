@@ -9,7 +9,9 @@ class BikeData {
   final int    support, page, menuState;
   final int    stopwatchCs, stopwatchState;
   // Diagnostic
-  final double diagRawNorm, diagFilteredTorque, diagTarget;
+  // diagFilteredTorque = Anzeige-Filter (laeuft immer), diagGatedTorque = Regel-Filter
+  // (0 solange das Kadenz-Gate zu ist). Nur letzterer erklaert diagTarget.
+  final double diagRawNorm, diagFilteredTorque, diagGatedTorque, diagTarget;
   final int    diagCadenceGateOpen;
   // VESC: motorCurrent ist der PHASENSTROM (nicht Batteriestrom)
   final double motorCurrent, dutyCycle, erpm, tempMotor, tempFet;
@@ -43,7 +45,8 @@ class BikeData {
     this.range = 0, this.capacity = 0, this.onTimeSec = 0, this.rideSec = 0,
     this.raceMode = false, this.cruise = false, this.support = 0, this.page = 0,
     this.menuState = 0, this.stopwatchCs = 0, this.stopwatchState = 0,
-    this.diagRawNorm = 0, this.diagFilteredTorque = 0, this.diagTarget = 0,
+    this.diagRawNorm = 0, this.diagFilteredTorque = 0, this.diagGatedTorque = 0,
+    this.diagTarget = 0,
     this.diagCadenceGateOpen = 0,
     this.motorCurrent = 0, this.dutyCycle = 0, this.erpm = 0,
     this.tempMotor = 0, this.tempFet = 0,
@@ -81,6 +84,7 @@ class BikeData {
     support: _i(j['su']), page: _i(j['pg']), menuState: _i(j['ms']),
     stopwatchCs: _i(j['sw']), stopwatchState: _i(j['ss']),
     diagRawNorm: _d(j['drn']), diagFilteredTorque: _d(j['dft']),
+    diagGatedTorque: _d(j['dgf']),
     diagCadenceGateOpen: _i(j['dgt']), diagTarget: _d(j['dtg']),
     motorCurrent: _d(j['imot']), dutyCycle: _d(j['duty']), erpm: _d(j['erpm']),
     tempMotor: _d(j['tmot']), tempFet: _d(j['tfet']),

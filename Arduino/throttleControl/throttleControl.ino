@@ -401,7 +401,23 @@ void loop1() {
 
   // 2. DREHMOMENT LOGIK (immer, für Displayanzeige)
   // Sensor ist invertiert: hohe Spannung = kein Tritt, niedrige Spannung = Kraft
-  s.torque = analogReadShared(TORQUE_PIN);
+  // MEDIAN aus 3 Messungen statt des Rohwerts. Die Sensorleitung faengt sich
+  // einzelne Spikes ein - im Log vom 03.08. sowohl nach unten (Rohwert bis 0 =
+  // scheinbar VOLLE Kraft) als auch nach oben (4095 = Anschlag). Ein Median wirft
+  // genau solche Einzelausreisser komplett weg, ohne die Reaktion zu verzoegern
+  // wie ein Tiefpass (Verzug nur 1 Abtastung = 10 ms bei 100 Hz).
+  // Ohne das rastet torqueFilterRise (0.4) jeden Spike ein: EIN Ausreisser hebt
+  // filteredTorque um 40 % der Luecke an - beim Anfahren sprang die Unterstuetzung
+  // dadurch auf 80 %, obwohl real nur ~30 % Pedalkraft anlag.
+  static uint16_t tqBuf[3] = {0, 0, 0};
+  static uint8_t  tqIdx = 0;
+  tqBuf[tqIdx] = (uint16_t)analogReadShared(TORQUE_PIN);
+  tqIdx = (uint8_t)((tqIdx + 1) % 3);
+  {
+    uint16_t x = tqBuf[0], y = tqBuf[1], z = tqBuf[2];
+    s.torque = (x > y) ? ((y > z) ? y : ((x > z) ? z : x))
+                       : ((x > z) ? x : ((y > z) ? z : y));
+  }
   float rawNorm = 0.0f;
   int32_t delta = (int32_t)p.torqueZero - (int32_t)s.torque;
   if (delta > (int32_t)p.torqueDeadband) {
@@ -411,8 +427,26 @@ void loop1() {
     if (range > 0)
       rawNorm = constrain((float)(delta - (int32_t)p.torqueDeadband) / (float)range, 0.0f, 1.0f);
   }
+  // ANZEIGE-Filter: laeuft IMMER, unabhaengig vom Gate. Nur so sieht man am Display
+  // und im CSV, was der Sensor liefert - auch bei stehendem Pedal.
   float alpha = (rawNorm > filteredTorque) ? p.torqueFilterRise : p.torqueFilterFall;
   filteredTorque = (alpha * rawNorm) + ((1.0f - alpha) * filteredTorque);
+
+  // REGEL-Filter: gleiche Parameter, aber bei geschlossenem Gate hart auf 0 gehalten.
+  // Ohne das laedt er sich waehrend des Aufsteigens voll, WEIL der Fahrer schon aufs
+  // Pedal drueckt bevor sich die Kurbel dreht - das Gate blockiert dann nur den
+  // Ausgang, nicht den Filter. Beim ersten Kadenzpuls springt target damit in EINEM
+  // Zyklus auf den Endwert statt aufzubauen.
+  // Log 04.08. 21:01, Anfahren aus dem Stand: t=2066 filteredTorque 0.938 bei
+  // target 0.000 -> t=2087 Gate auf -> target 0.930 sofort -> 0.65 s spaeter
+  // 26.5 A Motorstrom bei Speed 0.0 = voller Schlag in den Antriebsstrang.
+  static float gatedTorque = 0.0f;
+  if (!cadenceGateOpen) {
+    gatedTorque = 0.0f;
+  } else {
+    float gAlpha = (rawNorm > gatedTorque) ? p.torqueFilterRise : p.torqueFilterFall;
+    gatedTorque = (gAlpha * rawNorm) + ((1.0f - gAlpha) * gatedTorque);
+  }
 
   // Pedalerkennung ueber das ROHE Drehmoment (rawNorm > 0 = Druck ueber Deadband).
   // Bewusst nicht filteredTorque: dessen Abfall ist absichtlich traege (torqueFilterFall)
@@ -472,8 +506,12 @@ void loop1() {
   // 3b) PAS-ZIEL (Pedal-Modi 0/1/2). pasMode 3 = reiner Cruise-Modus -> bleibt 0.
   float pasTarget = 0.0f;
   if (p.pasMode == 0) {
-    // Drehmoment bestimmt die HOEHE, die Kadenz ist nur ein Ein/Aus-Gate
-    float factor = cadenceGateOpen ? filteredTorque : 0.0f;
+    // Drehmoment bestimmt die HOEHE, die Kadenz ist nur ein Ein/Aus-Gate.
+    // gatedTorque statt filteredTorque: nur der wird bei geschlossenem Gate auf 0
+    // gehalten und baut danach ueber torqueFilterRise auf, statt zu springen.
+    // Die Gate-Abfrage ist dadurch doppelt gemoppelt - bewusst stehen gelassen,
+    // damit die Sperre auch dann haelt, wenn der Filterblock spaeter umgebaut wird.
+    float factor = cadenceGateOpen ? gatedTorque : 0.0f;
     float curveOut = applyCurve(factor);
     if (curveOut > 0.0f) curveOut = constrain(curveOut + p.curveOffset, 0.0f, 1.0f);
     pasTarget = curveOut * ((float)p.supportLevel / 12.0f);
@@ -551,15 +589,21 @@ void loop1() {
   // Diagnose speichern (für CSV-Logging)
   s.diagRawNorm = rawNorm;
   s.diagFilteredTorque = filteredTorque;
+  s.diagGatedTorque = gatedTorque;
   s.diagTarget = target;
   s.diagCadenceGateOpen = cadenceGateOpen ? 1 : 0;
 
   // 5. RAMPE - Cruise nutzt seine eigenen (sanfteren) Rampen. `cruiseActive` bleibt beim
   // Loslassen so lange wahr, wie cruiseHold noch ausklingt -> die Cruise-Ramp-Down greift
   // also auch dann, obwohl cruisePressed schon false ist.
+  // Die Rampenwahl haengt am IST-Throttle, nicht am Ziel: der erste Teil des Gaswegs
+  // (bis rampThreshold) laeuft dadurch IMMER mit der langsamen rampUpLow, egal wie hoch
+  // das Ziel springt. Mit `target > rampThreshold` war es genau umgekehrt - ein hohes
+  // Ziel schaltete sofort auf rampUpHigh und rampUpLow kam beim Anfahren nie zum Zug
+  // (Log 04.08. 21:01: target sprang auf 0.93 -> Vollgas in 0.65 s aus dem Stand).
   if (target > throttle) {
     float step = cruiseActive ? p.cruiseRampUp
-                              : ((target > p.rampThreshold) ? p.rampUpHigh : p.rampUpLow);
+                              : ((throttle > p.rampThreshold) ? p.rampUpHigh : p.rampUpLow);
     throttle += step;
   } else if (throttle > target) {
     throttle -= cruiseActive ? p.cruiseRampDown : p.rampDown;
